@@ -1,4 +1,5 @@
 import { Router, IRequest } from 'itty-router';
+import { getUsers, getUser, getUserByEmail, createUser, updateUser, seedUsers } from './routes/users';
 
 // Environment bindings interface
 export interface Env {
@@ -35,25 +36,25 @@ export const error = (message: string, status = 400) =>
     json({ error: message }, status);
 
 // Health check
-router.get('/health', () => json({ status: 'ok', version: '0.1.0' }));
+router.get('/health', () => json({ status: 'ok', version: '0.2.0' }));
 
-// API Routes (to be implemented in future issues)
+// ============ User Routes (Issue #4) ============
+router.get('/api/users', getUsers);
+router.get('/api/users/search', getUserByEmail);
+router.get('/api/users/:id', getUser);
+router.post('/api/users', createUser);
+router.put('/api/users/:id', updateUser);
+router.post('/api/admin/seed-users', seedUsers);
+
+// ============ Item Routes ============
 router.get('/api/items', async (request: IRequest, env: Env) => {
     const { results } = await env.DB.prepare('SELECT * FROM items WHERE available = 1').all();
     return json(results);
 });
 
-router.get('/api/users/:id', async (request: IRequest, env: Env) => {
-    const { id } = request.params;
-    const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
-    if (!user) return error('User not found', 404);
-    return json(user);
-});
-
-// Admin: Seed initial data
-router.post('/api/admin/seed', async (request: IRequest, env: Env) => {
+// Admin: Seed initial items
+router.post('/api/admin/seed-items', async (request: IRequest, env: Env) => {
     try {
-        // Seed some sample items
         await env.DB.batch([
             env.DB.prepare(`INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)`)
                 .bind('LEGO Mindstorms EV3', 'Complete robotics kit', 'lego', 35000, 'low', 1),
@@ -64,7 +65,7 @@ router.post('/api/admin/seed', async (request: IRequest, env: Env) => {
             env.DB.prepare(`INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)`)
                 .bind('Ender 3 V2', '3D Printer', '3d_printer', 30000, 'medium', 3),
         ]);
-        return json({ message: 'Seeded successfully' });
+        return json({ message: 'Items seeded successfully' });
     } catch (e: unknown) {
         const message = e instanceof Error ? e.message : 'Unknown error';
         return error(`Seed failed: ${message}`, 500);
@@ -73,6 +74,7 @@ router.post('/api/admin/seed', async (request: IRequest, env: Env) => {
 
 // 404 handler
 router.all('*', () => error('Not Found', 404));
+
 
 // Main export
 export default {
