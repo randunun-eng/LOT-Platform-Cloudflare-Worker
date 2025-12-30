@@ -5,7 +5,9 @@ import { getItems, getItem, searchItems, createItem, updateItem, deleteItem, get
 import { getPlans, getSubscription, createSubscription, cancelSubscription } from './routes/subscriptions';
 import { handleStripeWebhook, handlePayHereWebhook } from './routes/payments';
 import { getUserBorrows, getBorrow, getItemBorrows, createBorrow, confirmHandover, returnItem, getOverdueBorrows } from './routes/borrows';
+import { getProgression, getUserProgressionById, getLevelRequirements, adminAwardPoints, adminAdjustTrust, getLeaderboard } from './routes/progression';
 import { requireAuth, requireAdmin } from './middleware/auth';
+
 
 
 
@@ -92,8 +94,17 @@ router.post('/api/borrows/handover', confirmHandover);
 router.post('/api/borrows/:id/return', requireAuth, returnItem);
 router.get('/api/admin/borrows/overdue', requireAdmin, getOverdueBorrows);
 
+// ============ Progression Routes (Issues #17-19) ============
+router.get('/api/progression', requireAuth, getProgression);
+router.get('/api/progression/levels', getLevelRequirements);
+router.get('/api/progression/leaderboard', getLeaderboard);
+router.get('/api/progression/:userId', getUserProgressionById);
+router.post('/api/admin/progression/points', requireAdmin, adminAwardPoints);
+router.post('/api/admin/progression/trust', requireAdmin, adminAdjustTrust);
+
 // 404 handler
 router.all('*', () => error('Not Found', 404));
+
 
 
 
