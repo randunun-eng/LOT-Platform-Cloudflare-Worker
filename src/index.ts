@@ -4,7 +4,9 @@ import { requestOTP, verifyOTP, logout, getCurrentUser } from './routes/auth';
 import { getItems, getItem, searchItems, createItem, updateItem, deleteItem, getCategories, seedItems, checkAvailability } from './routes/items';
 import { getPlans, getSubscription, createSubscription, cancelSubscription } from './routes/subscriptions';
 import { handleStripeWebhook, handlePayHereWebhook } from './routes/payments';
+import { getUserBorrows, getBorrow, getItemBorrows, createBorrow, confirmHandover, returnItem, getOverdueBorrows } from './routes/borrows';
 import { requireAuth, requireAdmin } from './middleware/auth';
+
 
 
 
@@ -81,8 +83,18 @@ router.delete('/api/subscriptions/:userId', requireAuth, cancelSubscription);
 router.post('/api/webhooks/stripe', handleStripeWebhook);
 router.post('/api/webhooks/payhere', handlePayHereWebhook);
 
+// ============ Borrow Routes (Issues #13-16) ============
+router.get('/api/borrows', requireAuth, getUserBorrows);
+router.get('/api/borrows/:id', requireAuth, getBorrow);
+router.get('/api/items/:itemId/borrows', requireAdmin, getItemBorrows);
+router.post('/api/borrows', requireAuth, createBorrow);
+router.post('/api/borrows/handover', confirmHandover);
+router.post('/api/borrows/:id/return', requireAuth, returnItem);
+router.get('/api/admin/borrows/overdue', requireAdmin, getOverdueBorrows);
+
 // 404 handler
 router.all('*', () => error('Not Found', 404));
+
 
 
 
