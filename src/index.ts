@@ -2,7 +2,11 @@ import { Router, IRequest } from 'itty-router';
 import { getUsers, getUser, getUserByEmail, createUser, updateUser, seedUsers } from './routes/users';
 import { requestOTP, verifyOTP, logout, getCurrentUser } from './routes/auth';
 import { getItems, getItem, searchItems, createItem, updateItem, deleteItem, getCategories, seedItems, checkAvailability } from './routes/items';
+import { getPlans, getSubscription, createSubscription, cancelSubscription } from './routes/subscriptions';
+import { handleStripeWebhook, handlePayHereWebhook } from './routes/payments';
 import { requireAuth, requireAdmin } from './middleware/auth';
+
+
 
 
 // Environment bindings interface
@@ -67,8 +71,20 @@ router.put('/api/items/:id', requireAdmin, updateItem);
 router.delete('/api/items/:id', requireAdmin, deleteItem);
 router.post('/api/admin/seed-items', requireAdmin, seedItems);
 
+// ============ Subscription Routes (Issues #10, #11) ============
+router.get('/api/subscriptions/plans', getPlans);
+router.get('/api/subscriptions/:userId', requireAuth, getSubscription);
+router.post('/api/subscriptions', requireAuth, createSubscription);
+router.delete('/api/subscriptions/:userId', requireAuth, cancelSubscription);
+
+// ============ Payment Webhooks (Issue #12) ============
+router.post('/api/webhooks/stripe', handleStripeWebhook);
+router.post('/api/webhooks/payhere', handlePayHereWebhook);
+
 // 404 handler
 router.all('*', () => error('Not Found', 404));
+
+
 
 // Main export
 export default {
