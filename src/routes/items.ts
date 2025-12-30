@@ -1,5 +1,6 @@
 import { IRequest } from 'itty-router';
 import { Env, json, error } from '../index';
+import { isItemAvailable } from '../services/availability';
 
 // Item type
 export interface Item {
@@ -14,6 +15,18 @@ export interface Item {
     image_url: string | null;
     created_at: number;
 }
+
+// Check item availability endpoint
+export const checkAvailability = async (request: IRequest, env: Env) => {
+    const { id } = request.params;
+
+    if (!id || isNaN(Number(id))) {
+        return error('Invalid item ID', 400);
+    }
+
+    const available = await isItemAvailable(env, Number(id));
+    return json({ itemId: Number(id), available });
+};
 
 // List all items (with optional filters)
 export const getItems = async (request: IRequest, env: Env) => {
@@ -96,7 +109,6 @@ export const createItem = async (request: IRequest, env: Env) => {
         const body = await request.json() as Partial<Item>;
         const { name, description, category, replacement_value, risk_level, min_level_required, image_url } = body;
 
-        // Validation
         if (!name || typeof name !== 'string') {
             return error('Name is required', 400);
         }
@@ -122,15 +134,7 @@ export const createItem = async (request: IRequest, env: Env) => {
 
         const result = await env.DB.prepare(
             'INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)'
-        ).bind(
-            name.trim(),
-            description || null,
-            category.toLowerCase(),
-            replacement_value,
-            riskLevelValue,
-            minLevel,
-            image_url || null
-        ).run();
+        ).bind(name.trim(), description || null, category.toLowerCase(), replacement_value, riskLevelValue, minLevel, image_url || null).run();
 
         return json({ message: 'Item created', id: result.meta.last_row_id }, 201);
     } catch (e) {
@@ -152,48 +156,22 @@ export const updateItem = async (request: IRequest, env: Env) => {
     try {
         const body = await request.json() as Partial<Item>;
 
-        // Check item exists
         const existing = await env.DB.prepare('SELECT id FROM items WHERE id = ?').bind(id).first();
         if (!existing) {
             return error('Item not found', 404);
         }
 
-        // Build dynamic update
         const updates: string[] = [];
         const params: (string | number | null)[] = [];
 
-        if (body.name !== undefined) {
-            updates.push('name = ?');
-            params.push(body.name);
-        }
-        if (body.description !== undefined) {
-            updates.push('description = ?');
-            params.push(body.description);
-        }
-        if (body.category !== undefined) {
-            updates.push('category = ?');
-            params.push(body.category.toLowerCase());
-        }
-        if (body.replacement_value !== undefined) {
-            updates.push('replacement_value = ?');
-            params.push(body.replacement_value);
-        }
-        if (body.risk_level !== undefined) {
-            updates.push('risk_level = ?');
-            params.push(body.risk_level.toLowerCase());
-        }
-        if (body.min_level_required !== undefined) {
-            updates.push('min_level_required = ?');
-            params.push(body.min_level_required);
-        }
-        if (body.available !== undefined) {
-            updates.push('available = ?');
-            params.push(body.available);
-        }
-        if (body.image_url !== undefined) {
-            updates.push('image_url = ?');
-            params.push(body.image_url);
-        }
+        if (body.name !== undefined) { updates.push('name = ?'); params.push(body.name); }
+        if (body.description !== undefined) { updates.push('description = ?'); params.push(body.description); }
+        if (body.category !== undefined) { updates.push('category = ?'); params.push(body.category.toLowerCase()); }
+        if (body.replacement_value !== undefined) { updates.push('replacement_value = ?'); params.push(body.replacement_value); }
+        if (body.risk_level !== undefined) { updates.push('risk_level = ?'); params.push(body.risk_level.toLowerCase()); }
+        if (body.min_level_required !== undefined) { updates.push('min_level_required = ?'); params.push(body.min_level_required); }
+        if (body.available !== undefined) { updates.push('available = ?'); params.push(body.available); }
+        if (body.image_url !== undefined) { updates.push('image_url = ?'); params.push(body.image_url); }
 
         if (updates.length === 0) {
             return error('No fields to update', 400);
@@ -219,7 +197,6 @@ export const deleteItem = async (request: IRequest, env: Env) => {
         return error('Invalid item ID', 400);
     }
 
-    // Check if item has active borrows
     const activeBorrow = await env.DB.prepare(
         'SELECT id FROM borrow_records WHERE item_id = ? AND status = ?'
     ).bind(id, 'active').first();
@@ -235,10 +212,7 @@ export const deleteItem = async (request: IRequest, env: Env) => {
 
 // Get item categories
 export const getCategories = async (request: IRequest, env: Env) => {
-    const { results } = await env.DB.prepare(
-        'SELECT DISTINCT category FROM items ORDER BY category'
-    ).all();
-
+    const { results } = await env.DB.prepare('SELECT DISTINCT category FROM items ORDER BY category').all();
     return json(results.map((r: Record<string, unknown>) => r.category));
 };
 
@@ -247,21 +221,17 @@ export const seedItems = async (request: IRequest, env: Env) => {
     try {
         await env.DB.batch([
             env.DB.prepare('INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)')
-                .bind('LEGO Mindstorms EV3', 'Complete robotics kit with motors and sensors', 'lego', 35000, 'low', 1),
+                .bind('LEGO Mindstorms EV3', 'Complete robotics kit', 'lego', 35000, 'low', 1),
             env.DB.prepare('INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)')
-                .bind('ESP32 DevKit V1', 'WiFi+Bluetooth microcontroller board', 'iot', 1500, 'low', 1),
+                .bind('ESP32 DevKit V1', 'WiFi+BT microcontroller', 'iot', 1500, 'low', 1),
             env.DB.prepare('INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)')
-                .bind('Arduino Uno R3', 'Classic microcontroller for beginners', 'iot', 2500, 'low', 1),
+                .bind('Arduino Uno R3', 'Classic microcontroller', 'iot', 2500, 'low', 1),
             env.DB.prepare('INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)')
                 .bind('Raspberry Pi 4 8GB', 'Single board computer', 'iot', 8500, 'medium', 2),
             env.DB.prepare('INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)')
-                .bind('DJI Mini 3', 'Compact camera drone', 'electronics', 75000, 'high', 4),
+                .bind('DJI Mini 3', 'Compact drone', 'electronics', 75000, 'high', 4),
             env.DB.prepare('INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)')
                 .bind('Ender 3 V2', 'FDM 3D Printer', '3d_printer', 30000, 'medium', 3),
-            env.DB.prepare('INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)')
-                .bind('Oscilloscope DSO138', 'Digital oscilloscope kit', 'tools', 3500, 'low', 2),
-            env.DB.prepare('INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)')
-                .bind('Soldering Station', 'Temperature controlled soldering iron', 'tools', 5000, 'medium', 2),
         ]);
         return json({ message: 'Items seeded successfully' });
     } catch (e: unknown) {

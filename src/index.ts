@@ -1,8 +1,9 @@
 import { Router, IRequest } from 'itty-router';
 import { getUsers, getUser, getUserByEmail, createUser, updateUser, seedUsers } from './routes/users';
 import { requestOTP, verifyOTP, logout, getCurrentUser } from './routes/auth';
-import { getItems, getItem, searchItems, createItem, updateItem, deleteItem, getCategories, seedItems } from './routes/items';
+import { getItems, getItem, searchItems, createItem, updateItem, deleteItem, getCategories, seedItems, checkAvailability } from './routes/items';
 import { requireAuth, requireAdmin } from './middleware/auth';
+
 
 // Environment bindings interface
 export interface Env {
@@ -55,11 +56,12 @@ router.post('/api/users', createUser);
 router.put('/api/users/:id', requireAuth, updateUser);
 router.post('/api/admin/seed-users', requireAdmin, seedUsers);
 
-// ============ Item Routes (Issues #7, #8) ============
+// ============ Item Routes (Issues #7, #8, #9) ============
 router.get('/api/items', getItems);
 router.get('/api/items/search', searchItems);
 router.get('/api/items/categories', getCategories);
 router.get('/api/items/:id', getItem);
+router.get('/api/items/:id/availability', checkAvailability);
 router.post('/api/items', requireAdmin, createItem);
 router.put('/api/items/:id', requireAdmin, updateItem);
 router.delete('/api/items/:id', requireAdmin, deleteItem);
