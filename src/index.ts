@@ -1,6 +1,7 @@
 import { Router, IRequest } from 'itty-router';
 import { getUsers, getUser, getUserByEmail, createUser, updateUser, seedUsers } from './routes/users';
 import { requestOTP, verifyOTP, logout, getCurrentUser } from './routes/auth';
+import { requireAuth, requireAdmin } from './middleware/auth';
 
 // Environment bindings interface
 export interface Env {
@@ -37,21 +38,22 @@ export const error = (message: string, status = 400) =>
     json({ error: message }, status);
 
 // Health check
-router.get('/health', () => json({ status: 'ok', version: '0.3.0' }));
+router.get('/health', () => json({ status: 'ok', version: '0.4.0' }));
 
 // ============ Auth Routes (Issue #5) ============
 router.post('/api/auth/request-otp', requestOTP);
 router.post('/api/auth/verify-otp', verifyOTP);
 router.post('/api/auth/logout', logout);
-router.get('/api/auth/me', getCurrentUser);
+router.get('/api/auth/me', requireAuth, getCurrentUser);
 
 // ============ User Routes (Issue #4) ============
-router.get('/api/users', getUsers);
-router.get('/api/users/search', getUserByEmail);
-router.get('/api/users/:id', getUser);
-router.post('/api/users', createUser);
-router.put('/api/users/:id', updateUser);
-router.post('/api/admin/seed-users', seedUsers);
+router.get('/api/users', requireAdmin, getUsers);
+router.get('/api/users/search', requireAuth, getUserByEmail);
+router.get('/api/users/:id', requireAuth, getUser);
+router.post('/api/users', createUser); // Public for registration
+router.put('/api/users/:id', requireAuth, updateUser);
+router.post('/api/admin/seed-users', requireAdmin, seedUsers);
+
 
 
 // ============ Item Routes ============
