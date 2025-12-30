@@ -7,7 +7,11 @@ import { handleStripeWebhook, handlePayHereWebhook } from './routes/payments';
 import { getUserBorrows, getBorrow, getItemBorrows, createBorrow, confirmHandover, returnItem, getOverdueBorrows } from './routes/borrows';
 import { getProgression, getUserProgressionById, getLevelRequirements, adminAwardPoints, adminAdjustTrust, getLeaderboard } from './routes/progression';
 import { uploadMedia, getMedia, createPost, getUserPosts, getPendingPosts, approvePost, rejectPost, getPublicFeed, getPost } from './routes/community';
+import { getAuditLogs, getAdminStats, adminForceReturn, adminSetUserLevel } from './routes/admin';
+import { getUserNotifications, markNotificationRead } from './services/notifications';
+import { getUsageMetrics, getHealthDetailed } from './services/observability';
 import { requireAuth, requireAdmin } from './middleware/auth';
+
 
 
 
@@ -115,8 +119,23 @@ router.get('/api/admin/community/pending', requireAdmin, getPendingPosts);
 router.post('/api/admin/community/posts/:id/approve', requireAdmin, approvePost);
 router.post('/api/admin/community/posts/:id/reject', requireAdmin, rejectPost);
 
+// ============ Admin Routes (Issues #24-25) ============
+router.get('/api/admin/audit', requireAdmin, getAuditLogs);
+router.get('/api/admin/stats', requireAdmin, getAdminStats);
+router.post('/api/admin/force-return', requireAdmin, adminForceReturn);
+router.post('/api/admin/set-level', requireAdmin, adminSetUserLevel);
+
+// ============ Notification Routes (Issues #26-27) ============
+router.get('/api/notifications', requireAuth, getUserNotifications);
+router.post('/api/notifications/:id/read', requireAuth, markNotificationRead);
+
+// ============ Observability Routes (Issues #30-31) ============
+router.get('/api/metrics', requireAdmin, getUsageMetrics);
+router.get('/health/detailed', getHealthDetailed);
+
 // 404 handler
 router.all('*', () => error('Not Found', 404));
+
 
 
 
