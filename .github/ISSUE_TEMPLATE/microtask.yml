@@ -1,0 +1,27 @@
+---
+name: Microtask
+description: Small, atomic implementation task
+title: "[MICRO] "
+labels: ["microtask"]
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      description: What exactly needs to be built
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Acceptance Criteria
+      description: Conditions to mark this task complete
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Dependencies
+      description: Issues or systems this depends on
+    validations:
+      required: false
+---

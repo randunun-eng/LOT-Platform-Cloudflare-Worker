@@ -1,0 +1,25 @@
+---
+name: Feature
+description: Larger functional feature
+title: "[FEATURE] "
+labels: ["feature"]
+body:
+  - type: textarea
+    attributes:
+      label: Feature Description
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: User Value
+      description: Why this matters for LOT users
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Acceptance Criteria
+    validations:
+      required: true
+---
