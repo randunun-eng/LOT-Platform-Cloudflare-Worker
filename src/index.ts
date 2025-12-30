@@ -6,7 +6,9 @@ import { getPlans, getSubscription, createSubscription, cancelSubscription } fro
 import { handleStripeWebhook, handlePayHereWebhook } from './routes/payments';
 import { getUserBorrows, getBorrow, getItemBorrows, createBorrow, confirmHandover, returnItem, getOverdueBorrows } from './routes/borrows';
 import { getProgression, getUserProgressionById, getLevelRequirements, adminAwardPoints, adminAdjustTrust, getLeaderboard } from './routes/progression';
+import { uploadMedia, getMedia, createPost, getUserPosts, getPendingPosts, approvePost, rejectPost, getPublicFeed, getPost } from './routes/community';
 import { requireAuth, requireAdmin } from './middleware/auth';
+
 
 
 
@@ -102,8 +104,20 @@ router.get('/api/progression/:userId', getUserProgressionById);
 router.post('/api/admin/progression/points', requireAdmin, adminAwardPoints);
 router.post('/api/admin/progression/trust', requireAdmin, adminAdjustTrust);
 
+// ============ Community Routes (Issues #20-23) ============
+router.post('/api/media/upload', requireAuth, uploadMedia);
+router.get('/api/media/:filename', getMedia);
+router.post('/api/community/posts', requireAuth, createPost);
+router.get('/api/community/posts', requireAuth, getUserPosts);
+router.get('/api/community/posts/:id', getPost);
+router.get('/api/community/feed', getPublicFeed);
+router.get('/api/admin/community/pending', requireAdmin, getPendingPosts);
+router.post('/api/admin/community/posts/:id/approve', requireAdmin, approvePost);
+router.post('/api/admin/community/posts/:id/reject', requireAdmin, rejectPost);
+
 // 404 handler
 router.all('*', () => error('Not Found', 404));
+
 
 
 
