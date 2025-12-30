@@ -1,6 +1,7 @@
 import { Router, IRequest } from 'itty-router';
 import { getUsers, getUser, getUserByEmail, createUser, updateUser, seedUsers } from './routes/users';
 import { requestOTP, verifyOTP, logout, getCurrentUser } from './routes/auth';
+import { getItems, getItem, searchItems, createItem, updateItem, deleteItem, getCategories, seedItems } from './routes/items';
 import { requireAuth, requireAdmin } from './middleware/auth';
 
 // Environment bindings interface
@@ -38,7 +39,7 @@ export const error = (message: string, status = 400) =>
     json({ error: message }, status);
 
 // Health check
-router.get('/health', () => json({ status: 'ok', version: '0.4.0' }));
+router.get('/health', () => json({ status: 'ok', version: '0.5.0' }));
 
 // ============ Auth Routes (Issue #5) ============
 router.post('/api/auth/request-otp', requestOTP);
@@ -50,41 +51,22 @@ router.get('/api/auth/me', requireAuth, getCurrentUser);
 router.get('/api/users', requireAdmin, getUsers);
 router.get('/api/users/search', requireAuth, getUserByEmail);
 router.get('/api/users/:id', requireAuth, getUser);
-router.post('/api/users', createUser); // Public for registration
+router.post('/api/users', createUser);
 router.put('/api/users/:id', requireAuth, updateUser);
 router.post('/api/admin/seed-users', requireAdmin, seedUsers);
 
-
-
-// ============ Item Routes ============
-router.get('/api/items', async (request: IRequest, env: Env) => {
-    const { results } = await env.DB.prepare('SELECT * FROM items WHERE available = 1').all();
-    return json(results);
-});
-
-// Admin: Seed initial items
-router.post('/api/admin/seed-items', async (request: IRequest, env: Env) => {
-    try {
-        await env.DB.batch([
-            env.DB.prepare(`INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)`)
-                .bind('LEGO Mindstorms EV3', 'Complete robotics kit', 'lego', 35000, 'low', 1),
-            env.DB.prepare(`INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)`)
-                .bind('ESP32 DevKit', 'WiFi+BT microcontroller', 'iot', 1500, 'low', 1),
-            env.DB.prepare(`INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)`)
-                .bind('DJI Mini 3', 'Compact drone', 'electronics', 75000, 'high', 4),
-            env.DB.prepare(`INSERT INTO items (name, description, category, replacement_value, risk_level, min_level_required) VALUES (?, ?, ?, ?, ?, ?)`)
-                .bind('Ender 3 V2', '3D Printer', '3d_printer', 30000, 'medium', 3),
-        ]);
-        return json({ message: 'Items seeded successfully' });
-    } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : 'Unknown error';
-        return error(`Seed failed: ${message}`, 500);
-    }
-});
+// ============ Item Routes (Issues #7, #8) ============
+router.get('/api/items', getItems);
+router.get('/api/items/search', searchItems);
+router.get('/api/items/categories', getCategories);
+router.get('/api/items/:id', getItem);
+router.post('/api/items', requireAdmin, createItem);
+router.put('/api/items/:id', requireAdmin, updateItem);
+router.delete('/api/items/:id', requireAdmin, deleteItem);
+router.post('/api/admin/seed-items', requireAdmin, seedItems);
 
 // 404 handler
 router.all('*', () => error('Not Found', 404));
-
 
 // Main export
 export default {
